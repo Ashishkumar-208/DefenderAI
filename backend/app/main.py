@@ -19,7 +19,11 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, define actual domain roots
+    allow_origins=[
+        "https://defender-ai-iota.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,12 +41,10 @@ app.include_router(notifications.router)
 
 @app.on_event("startup")
 def startup_db_setup():
-    # 1. Create database schemas if SQLite/not present
     Base.metadata.create_all(bind=engine)
-    
+
     db = SessionLocal()
     try:
-        # 2. Seed MITRE ATT&CK techniques
         mitre_count = db.query(MitreMapping).count()
         if mitre_count == 0:
             for tech in MITRE_TECHNIQUES:
@@ -54,8 +56,7 @@ def startup_db_setup():
                 db.add(db_tech)
             db.commit()
             print("Successfully seeded MITRE ATT&CK techniques mapping matrix.")
-            
-        # 3. Seed default Admin user
+
         admin_user = db.query(User).filter(User.username == "admin").first()
         if not admin_user:
             db_admin = User(
@@ -67,8 +68,7 @@ def startup_db_setup():
             db.add(db_admin)
             db.commit()
             print("Default admin user created: admin / admin123")
-            
-        # 4. Seed default Analyst user
+
         analyst_user = db.query(User).filter(User.username == "analyst").first()
         if not analyst_user:
             db_analyst = User(
@@ -80,7 +80,7 @@ def startup_db_setup():
             db.add(db_analyst)
             db.commit()
             print("Default analyst user created: analyst / analyst123")
-            
+
     except Exception as e:
         print(f"Error during startup DB setup: {e}")
     finally:
@@ -88,4 +88,6 @@ def startup_db_setup():
 
 @app.get("/")
 def read_root():
-    return {"message": f"Welcome to {settings.PROJECT_NAME} API. Access documentation at /docs"}
+    return {
+        "message": f"Welcome to {settings.PROJECT_NAME} API. Access documentation at /docs"
+    }
